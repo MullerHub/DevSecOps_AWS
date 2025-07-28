@@ -161,3 +161,24 @@ aws budgets create-budget --account-id <ACCOUNT-ID> --budget file://orcamento.js
 ```
 
 
+# EC2 NAT configurada manualmente:
+# Habilitar forwarding
+sudo sed -i 's/^#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf && sudo sysctl -p
+
+# NAT via iptables
+sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+
+# Persistir com rc.local
+echo -e '#!/bin/bash\niptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE\nexit 0' | sudo tee /etc/rc.local > /dev/null && sudo chmod +x /etc/rc.local
+
+# Desabilitar Source/Dest Check
+aws ec2 modify-instance-attribute --instance-id <ID-DA-EC2-NAT> --no-source-dest-check
+
+# Criar tabela de rota privada
+aws ec2 create-route-table --vpc-id <VPC-ID> --tag-specifications 'ResourceType=route-table,Tags=[{Key=Name,Value=Rota-Privada}]'
+
+# Adicionar rota pela instância NAT
+aws ec2 create-route --route-table-id <ROUTE-TABLE-ID-PRIVADA> --destination-cidr-block 0.0.0.0/0 --instance-id <ID-DA-EC2-NAT>
+
+# Associar rota à sub-rede privada
+aws ec2 associate-route-table --route-table-id <ROUTE-TABLE-ID-PRIVADA> --subnet-id <SUBNET-ID-PRIVADA>
