@@ -85,7 +85,7 @@ Monitorar o status do site e enviar alerta se o servidor cair.
 #!/bin/bash
 
 URL="http://10.0.3.91"
-WEBHOOK_URL="https://discord.com/api/webhooks/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+WEBHOOK_URL="https://discord.com/api/webhooks/1398397961997910056/3T727zPZLSw9qfoZJxaRh9JsGBwTQ_fqo6cFhpFHukgJ6T0yx0LzUjWE3GjpVrJu4CGt"
 STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
 DATA=$(date +"%d/%m/%Y %H:%M")
 
