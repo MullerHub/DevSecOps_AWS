@@ -6,10 +6,15 @@
 aws ec2 create-vpc --cidr-block 10.0.0.0/16 --tag-specifications 'ResourceType=vpc,Tags=[{Key=Name,Value=VPC-Projeto}]'
 
 # Sub-rede pública
-aws ec2 create-subnet --vpc-id <VPC-ID> --cidr-block 10.0.1.0/24 --availability-zone sa-east-1a --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=Publica-A}]'
+aws ec2 create-subnet --vpc-id <VPC-ID> --cidr-block 10.0.1.0/24 --availability-zone us-east-1a --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=Publica-A}]'
+
+aws ec2 create-subnet --vpc-id <VPC-ID> --cidr-block 10.0.1.0/24 --availability-zone us-east-1b --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=Publica-B}]'
+
 
 # Sub-rede privada
-aws ec2 create-subnet --vpc-id <VPC-ID> --cidr-block 10.0.2.0/24 --availability-zone sa-east-1a --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=Privada-A}]'
+aws ec2 create-subnet --vpc-id <VPC-ID> --cidr-block 10.0.2.0/24 --availability-zone us-east-1a --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=Privada-A}]'
+
+aws ec2 create-subnet --vpc-id <VPC-ID> --cidr-block 10.0.2.0/24 --availability-zone us-east-1b --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=Privada-B}]'
 
 # Internet Gateway
 aws ec2 create-internet-gateway --tag-specifications 'ResourceType=internet-gateway,Tags=[{Key=Name,Value=Projeto-IGW}]'
@@ -27,6 +32,7 @@ aws ec2 associate-route-table --route-table-id <ROUTE-TABLE-ID> --subnet-id <SUB
 # EC2 NAT configurada manualmente:
 # Habilitar forwarding
 sudo vim /etc/sysctl.conf
+
 # Adicionar:
 net.ipv4.ip_forward = 1
 sudo sysctl -p
