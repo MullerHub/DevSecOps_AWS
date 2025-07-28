@@ -182,3 +182,58 @@ aws ec2 create-route --route-table-id <ROUTE-TABLE-ID-PRIVADA> --destination-cid
 
 # Associar rota à sub-rede privada
 aws ec2 associate-route-table --route-table-id <ROUTE-TABLE-ID-PRIVADA> --subnet-id <SUBNET-ID-PRIVADA>
+
+
+# Parte 3 - Bastion Host e Instâncias
+
+
+# Criar par de chaves
+aws ec2 create-key-pair --key-name ProjetoKey --query 'KeyMaterial' --output text > ProjetoKey.pem
+chmod 400 ProjetoKey.pem
+
+# Criar Security Group do Bastion
+aws ec2 create-security-group \
+  --group-name bastion-sg \
+  --description "SG do bastion" \
+  --vpc-id <VPC-ID>
+
+# Liberar acesso SSH ao Bastion
+aws ec2 authorize-security-group-ingress \
+  --group-id <SG-ID-BASTION> \
+  --protocol tcp \
+  --port 22 \
+  --cidr 0.0.0.0/0
+
+# Criar Bastion Host (EC2 pública)
+aws ec2 run-instances \
+  --image-id ami-<ubuntu> \
+  --count 1 \
+  --instance-type t2.micro \
+  --key-name ProjetoKey \
+  --security-group-ids <SG-ID-BASTION> \
+  --subnet-id <SUBNET-ID-PUBLICA> \
+  --associate-public-ip-address \
+  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=Bastion}]'
+
+# Criar Security Group da instância privada
+aws ec2 create-security-group \
+  --group-name privada-sg \
+  --description "SG da privada" \
+  --vpc-id <VPC-ID>
+
+# Liberar acesso SSH APENAS via Bastion
+aws ec2 authorize-security-group-ingress \
+  --group-id <SG-ID-PRIVATE> \
+  --protocol tcp \
+  --port 22 \
+  --source-group <SG-ID-BASTION>
+
+# Criar instância privada (sem IP público)
+aws ec2 run-instances \
+  --image-id ami-<ubuntu> \
+  --count 1 \
+  --instance-type t2.micro \
+  --key-name ProjetoKey \
+  --security-group-ids <SG-ID-PRIVATE> \
+  --subnet-id <SUBNET-ID-PRIVADA> \
+  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=Privada}]'
