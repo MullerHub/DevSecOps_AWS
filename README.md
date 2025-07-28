@@ -237,3 +237,24 @@ aws ec2 run-instances \
   --security-group-ids <SG-ID-PRIVATE> \
   --subnet-id <SUBNET-ID-PRIVADA> \
   --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=Privada}]'
+
+# Conectar no Bastion
+ssh -i ProjetoKey.pem ubuntu@<IP-DO-BASTION>
+
+# A partir do Bastion, conectar na instância privada
+ssh -i ProjetoKey.pem ubuntu@<IP-PRIVADO-DA-EC2-PRIVADA>
+
+# Atualizar pacotes e instalar o Nginx na instância privada
+sudo apt update
+sudo apt install nginx -y
+sudo systemctl start nginx
+sudo systemctl enable nginx
+
+# Testar Nginx localmente na EC2 privada
+curl http://localhost (ip da ec2-privada que compartilha o nginx)
+
+# Criar regra de rota na tabela da sub-rede privada para permitir tráfego de retorno via NAT
+# (caso esteja usando NAT Gateway ou NAT Instance)
+
+# Sair da instância privada e voltar ao Bastion
+exit
