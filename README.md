@@ -52,10 +52,10 @@ Instalar e configurar um servidor web na EC2. (privada)
    ```
 
 2. **Criação de página HTML**
-   - Arquivo localizado em `/var/www/html/index.html`
-   - Conteúdo exemplo:
-     ```html
-    <!DOCTYPE html>
+   - Arquivo localizado em `/var/www/html/index.html` (dentro da ec2-privada)
+
+```
+<!DOCTYPE html>
 <html>
 <head>
     <title>Projeto Estágio - Servidor Nginx</title>
@@ -67,7 +67,7 @@ Instalar e configurar um servidor web na EC2. (privada)
     <p>Data: 25/07/2025</p>
 </body>
 </html>
-     ```
+```
 
 3. **Verificação**
    - Página acessível via navegador no IP público da EC2 (funciona em rede interna apenas)
