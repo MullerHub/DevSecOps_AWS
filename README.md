@@ -79,7 +79,7 @@ Instalar e configurar um servidor web na EC2. (privada)
 ### Objetivo:
 Monitorar o status do site e enviar alerta se o servidor cair.
 
-### Script em Bash (exemplo):
+### Script em Bash (/usr/local/bin/monitoramento.sh):
 
 ```bash
 #!/bin/bash
