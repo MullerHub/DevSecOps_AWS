@@ -3,7 +3,9 @@
 
 ## ✅ Visão Geral
 
-Este projeto consiste em criar uma infraestrutura básica na AWS, composta por uma VPC personalizada, instâncias EC2, servidor Nginx e um sistema de monitoramento com alertas via Webhook (Telegram, Slack ou Discord).
+Este projeto consiste em criar uma infraestrutura básica na AWS, composta por uma VPC personalizada, instâncias EC2, servidor Nginx e um sistema de monitoramento com alertas via Webhook (Discord).
+
+<img width="1440" height="900" alt="Captura de Tela 2025-07-30 às 23 31 54" src="https://github.com/user-attachments/assets/dc77ef0d-9daa-46af-97e4-639c09e6315e" />
 
 ---
 
