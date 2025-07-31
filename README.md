@@ -116,6 +116,35 @@ else
 fi
 ```
 
+## Local e timer de monitoramento sobre o script de fato
+
+### cat monitoramento.service 
+```
+[Unit]
+Description=Serviço de Monitoramento do Site
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/monitoramento.sh
+StandardOutput=journal
+```
+
+### cat monitoramento.timer 
+```
+[Unit]
+Description=Timer para rodar monitoramento a cada 1 minuto
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1min
+Unit=monitoramento.service
+
+[Install]
+WantedBy=timers.target
+```
+
+
+
 ---
 
 ## 🧪 Etapa 4 – Testes e Documentação
