@@ -5,6 +5,8 @@
 
 Este projeto consiste em criar uma infraestrutura básica na AWS, composta por uma VPC personalizada, instâncias EC2 (Foi criada 3 instancias, Bastion Host pra validar e proteger toda infra, nat-instance pra deixar saida pra internet da ec2-privada e para atualizar pacotes, e a ec2-privada (que de fato vai fazer todo processamento)), servidor Nginx e um sistema de monitoramento com alertas via Webhook (Discord).
 
+## Print de como ficou as instancias e uma pequena parte dos logs do meu desenvolvimento (Tudo criado com AWS CLI)
+
 <img width="1440" height="900" alt="Captura de Tela 2025-07-30 às 23 31 54" src="https://github.com/user-attachments/assets/dc77ef0d-9daa-46af-97e4-639c09e6315e" />
 
 ---
