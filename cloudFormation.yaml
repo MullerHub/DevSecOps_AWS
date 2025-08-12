@@ -1,0 +1,307 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Infraestrutura AWS - VPC com sub-redes públicas/privadas, NAT Instance, Bastion Host via SSM e EC2 Privada com tags padrão Compass.
+
+Parameters:
+  KeyPairName:
+    Type: String
+    Description: Nome do par de chaves existente para acesso SSH (usado apenas se SSH for habilitado)
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    Description: Tipo de instância EC2
+  AmiUbuntu:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id
+  AmiAmazonLinux:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+
+Mappings:
+  TagsCompass:
+    Values:
+      Name: "PB - JUL 2025"
+      CostCenter: "CO92000024"
+      Project: "PB - JUL 2025"
+
+Resources:
+  # VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !FindInMap [TagsCompass, Values, Name]
+
+  # Internet Gateway
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !FindInMap [TagsCompass, Values, Name]
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # Subnets
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !FindInMap [TagsCompass, Values, Name]
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !FindInMap [TagsCompass, Values, Name]
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.3.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: !FindInMap [TagsCompass, Values, Name]
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.4.0/24
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: !FindInMap [TagsCompass, Values, Name]
+
+  # Route Tables
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !FindInMap [TagsCompass, Values, Name]
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !FindInMap [TagsCompass, Values, Name]
+
+  # Security Groups
+  BastionSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Acesso ao Bastion via Session Manager (SSH opcional)
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !FindInMap [TagsCompass, Values, Name]
+
+  PrivateSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SSH somente a partir do Bastion Host
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId: !Ref BastionSG
+      Tags:
+        - Key: Name
+          Value: !FindInMap [TagsCompass, Values, Name]
+
+  NatSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SSH apenas do Bastion Host para NAT
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId: !Ref BastionSG
+      Tags:
+        - Key: Name
+          Value: !FindInMap [TagsCompass, Values, Name]
+
+  # IAM Role para SSM
+  BastionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Tags:
+        - Key: Name
+          Value: !FindInMap [TagsCompass, Values, Name]
+
+  BastionInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref BastionRole
+
+  # EC2 Bastion (via SSM)
+  BastionInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyPairName
+      ImageId: !Ref AmiUbuntu
+      SubnetId: !Ref PublicSubnet1
+      SecurityGroupIds:
+        - !Ref BastionSG
+      IamInstanceProfile: !Ref BastionInstanceProfile
+      Tags:
+        - Key: Name
+          Value: !FindInMap [TagsCompass, Values, Name]
+        - Key: CostCenter
+          Value: !FindInMap [TagsCompass, Values, CostCenter]
+        - Key: Project
+          Value: !FindInMap [TagsCompass, Values, Project]
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          systemctl enable amazon-ssm-agent
+          systemctl start amazon-ssm-agent
+
+  # NAT Instance
+  NatInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyPairName
+      ImageId: !Ref AmiAmazonLinux
+      SubnetId: !Ref PublicSubnet2
+      SecurityGroupIds:
+        - !Ref NatSG
+      Tags:
+        - Key: Name
+          Value: !FindInMap [TagsCompass, Values, Name]
+        - Key: CostCenter
+          Value: !FindInMap [TagsCompass, Values, CostCenter]
+        - Key: Project
+          Value: !FindInMap [TagsCompass, Values, Project]
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          sysctl -w net.ipv4.ip_forward=1
+          echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+          yum install -y iptables-services
+          iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+          service iptables save
+          systemctl enable iptables
+          systemctl enable amazon-ssm-agent
+          systemctl start amazon-ssm-agent
+
+  NatDisableSourceDestCheck:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceId: !Ref NatInstance
+      SourceDestCheck: false
+
+  # EC2 Privada
+  PrivateInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyPairName
+      ImageId: !Ref AmiUbuntu
+      SubnetId: !Ref PrivateSubnet1
+      SecurityGroupIds:
+        - !Ref PrivateSG
+      IamInstanceProfile: !Ref BastionInstanceProfile
+      Tags:
+        - Key: Name
+          Value: !FindInMap [TagsCompass, Values, Name]
+        - Key: CostCenter
+          Value: !FindInMap [TagsCompass, Values, CostCenter]
+        - Key: Project
+          Value: !FindInMap [TagsCompass, Values, Project]
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          systemctl enable amazon-ssm-agent
+          systemctl start amazon-ssm-agent
+
+  # Rota da Private RT para NAT
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      InstanceId: !Ref NatInstance
+
+  PrivateSubnet1Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnet2Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet2
+      RouteTableId: !Ref PrivateRouteTable
+
+Outputs:
+  BastionInstanceId:
+    Description: ID do Bastion Host
+    Value: !Ref BastionInstance
+  NatInstanceId:
+    Description: ID da NAT Instance
+    Value: !Ref NatInstance
+  PrivateInstanceId:
+    Description: ID da EC2 Privada
+    Value: !Ref PrivateInstance
+
